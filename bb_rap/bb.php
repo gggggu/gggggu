@@ -2,23 +2,34 @@
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 
 
-    <div id="info">Загрузка...</div>  
+    <input id='text'>
+    <button id='key'>key</button><br>
+    <div id='div'></div>
+    
     <script>  
-        function json_example()  
-        {  
-            $.getJSON('http://localhost/rap/ci_rap', function(data) {  
-                s  = "";  
-                $.each(data, function(key, val) {   
-                    s = s + key+' => ' + val + '<br/>'   
-                });  
-                $("#info").html(s); 
-             });
+        function json_example(value) {
+            $.ajax({
+                  url: 'http://localhost/rap/ci_rap',
+                  dataType: 'json',
+                  data : {"id" : value},
+                    success: callback
+                });
         }  
-        // setInterval(json_example, 1000);  
- json_example();
+        function callback(data){
+            $('#div').text(data[0]['article'])
+             // console.log(data[0]['']) 
+        }
+      
+     $(document).ready(function(){         
+         $('#key').on('click', function(){
+             var value = $('#text').val();
+             json_example(value);
+             
+         })     
+     })
 </script>
 <?php
 
-echo 33;
+// echo 33;
 
 ?>
