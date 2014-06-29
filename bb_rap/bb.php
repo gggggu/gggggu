@@ -11,12 +11,12 @@
             $.ajax({
                   url: 'http://localhost/gggggu/ci_rap',
                   dataType: 'json',
-                  data : {"id" : value},
+//                  data : {"id" : value},
                     success: callback
                 });
         }  
         function callback(data){
-            $('#div').text(data[0]['article'])
+            $('#div').text(data);
              // console.log(data[0]['']) 
         }
       

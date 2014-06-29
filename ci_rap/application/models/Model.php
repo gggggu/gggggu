@@ -10,6 +10,17 @@ class Model extends CI_Model {
        return $q->result_array();
     }
     
+    function login($data){     
+        $login= $data['login'];
+        $password = $data['password'];
+        $query = "select * from login where login='$login' and password='$password'";
+        $result = $this->db->query($query);
+        return $result->num_rows();      
+    }
+    function wrong_login($ip){
+        $this->db->query("INSERT INTO `wrong_login`(`ip`) VALUES ('$ip')");
+    }
+    
     
     
     
