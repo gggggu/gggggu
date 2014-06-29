@@ -9,7 +9,7 @@
     <script>  
         function json_example(value) {
             $.ajax({
-                  url: 'http://localhost/rap/ci_rap',
+                  url: 'http://localhost/gggggu/ci_rap',
                   dataType: 'json',
                   data : {"id" : value},
                     success: callback
