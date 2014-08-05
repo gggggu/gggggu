@@ -45,10 +45,9 @@ $config['index_page'] = '';
 |
 */
 $config['uri_protocol']	= 'AUTO';
-<<<<<<< HEAD
+
 // $config['uri_protocol']	= "REQUEST_URI";
-=======
->>>>>>> 98c1cda9e62ba21b429d479e8bf930540b455752
+
 
 /*
 |--------------------------------------------------------------------------

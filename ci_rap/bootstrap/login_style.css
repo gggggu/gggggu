@@ -21,22 +21,17 @@ body {
 .row {
     background: #ededed;
     padding: 20px 50px 20px 50px;
-<<<<<<< HEAD
     margin: 100px;  
   border-radius:6px; 
 -webkit-border-radius:7px; 6
 -moz-border-radius:5px; 
 -khtml-border-radius:11px
-=======
-    margin: 100px;
->>>>>>> 98c1cda9e62ba21b429d479e8bf930540b455752
 }
 
 .btn {
     padding: 10px;
     border-radius: 0;
     border: none;
-<<<<<<< HEAD
     font-size: 21px;    
 }
 .login_button {
@@ -49,7 +44,4 @@ body {
 }
 #text_area{
  resize: none; 
-=======
-    font-size: 21px;
->>>>>>> 98c1cda9e62ba21b429d479e8bf930540b455752
 }
