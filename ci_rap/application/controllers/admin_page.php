@@ -7,6 +7,7 @@ class Admin_page extends CI_Controller {
     }
     public function index()
     {
+<<<<<<< HEAD
         echo 33;
     }    
     public function login($num=0){   
@@ -23,6 +24,23 @@ class Admin_page extends CI_Controller {
         //        $this->model->wrong_login($ip);
         //        //доделать оповещение
         //    } 
+=======
+        
+    }    
+    public function login($num=0){        
+        $data['login'] = $this->input->post('login');
+        $data['password'] = md5($this->input->post('password'));         
+        $this->load->view('login_view');  
+        $this->load->model('model');
+            if($this->model->login($data)==1){
+                header('Location: http://localhost/gggggu/ci_rap/index.php/ctrl');
+           }else{
+               if($num==2){
+                   $ip = $_SERVER["REMOTE_ADDR"];
+               $this->model->wrong_login($ip);
+               //доделать оповещение
+           } 
+>>>>>>> b94907de4392f0d523e5a5aff881aa8782149ba1
            
     }
     }

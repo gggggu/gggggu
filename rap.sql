@@ -51,7 +51,11 @@ INSERT INTO `login` (`id`, `login`, `password`) VALUES
 CREATE TABLE IF NOT EXISTS `wrong_login` (
   `id` int(5) NOT NULL AUTO_INCREMENT,
   `ip` varchar(30) NOT NULL,
+<<<<<<< HEAD
   `date_time` datetime,
+=======
+  `date_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+>>>>>>> b94907de4392f0d523e5a5aff881aa8782149ba1
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=6 ;
 
@@ -59,6 +63,11 @@ CREATE TABLE IF NOT EXISTS `wrong_login` (
 -- Дамп данных таблицы `wrong_login`
 --
 
+<<<<<<< HEAD
+=======
+INSERT INTO `wrong_login` (`id`, `ip`, `date_time`) VALUES
+(5, '::1', '2014-06-30 00:51:09');
+>>>>>>> b94907de4392f0d523e5a5aff881aa8782149ba1
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
