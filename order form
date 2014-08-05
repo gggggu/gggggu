@@ -1,0 +1,1460 @@
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
+<link type="text/css" href="/assets/js/jquery.autocomplete.css" rel="stylesheet" />
+<script type="text/javascript" src="http://api-maps.yandex.ru/1.1/index.xml?key=AL7cR1MBAAAAAlwuLQIAxqBgwIKV1iVAZY38U5A-yfgVB4gAAAAAAAAAAACBIkrYxzOC5bOqBnYLlndbG3EwDA==&modules=traffic~plainstyle~metro"></script>
+<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+<script language="JavaScript">                                                            
+function checkEnter(e){
+ e = e || event;
+  return (e.keyCode || event.which || event.charCode || 0) !== 13;
+  }                                                                                       
+</script>
+<script type="text/javascript">
+    var options, a;
+    
+    jQuery(function(){
+        //options = { serviceUrl:'/search.php', zIndex: 9999 };
+        function yandexAutoComplete($el){
+            $el.autocomplete({
+                source: function(request, response){
+                    var term = encodeURIComponent(request.term);
+                    $.ajax({url: "http://suggest-maps.yandex.ru/suggest-geo?format=json&_=1300282255720&ll=37.609218%2C55.753559" + "&spn=2.223358%2C0.534389&highlight=1&fullpath=1&sep=1&search_type=all&part=" + term,
+                        dataType : "jsonp",
+                        success : function(data){
+                            response($.map(data[1], function(item){
+                                // |Московская область|Moscow
+                                if((item[0] == "maps" || item[0] == "maps-sep") && (item[2].search(/(Москва|Московская область|Moscow)/) >= 0)){
+                                    re=new RegExp('Россия, Москва, ');
+                                    return {label: item[2].replace(re, ""), value: item[2].replace(re, "") }
+                                }
+                            }));
+                        }
+                    });
+                },
+                minLength: 2,
+                zIndex: 9999
+            }); 
+                
+        }
+        //a1 = $('#adres1').autocomplete(options);
+        //a2 = $('#adres2').autocomplete(options);
+        yandexAutoComplete($("#adres1"));
+        yandexAutoComplete($("#adres2"));
+
+        
+
+    $("#about2").keydown(function(event) {
+        // Allow: backspace, delete, tab, escape, and enter
+        if ( event.keyCode == 46 || event.keyCode == 8 || event.keyCode == 9 || event.keyCode == 27 || event.keyCode == 13 || 
+             // Allow: Ctrl+A
+            (event.keyCode == 65 && event.ctrlKey === true) || 
+             // Allow: home, end, left, right
+            (event.keyCode >= 35 && event.keyCode <= 39)) {
+                 // let it happen, don't do anything
+                 return;
+        }
+        else {
+            // Ensure that it is a number and stop the keypress
+            if (event.shiftKey || (event.keyCode < 48 || event.keyCode > 57 || event.keyCode == 61) && (event.keyCode < 96 || event.keyCode > 105 )) {
+                event.preventDefault(); 
+            }   
+        }
+    });
+        
+    });
+</script>
+<script>
+var map1;
+var map2;
+var prevRes;
+var carTypes = {
+    economType : {
+        dayMin : 450, //
+        nightMin: 500, //
+        minimalDuration : 30, //
+        rubPerPeriod : 12,
+        rubPerPeriodN : 13,
+        minInPeriod : 1,
+        moscowToAirport : {
+            SAOsheremetevo: 1200,
+            SZAOsheremetevo: 1200,
+            ZAOsheremetevo: 1300,
+            UZAOsheremetevo: 1400,
+            UAOsheremetevo: 1400,
+            UVAOsheremetevo: 1400,
+            VAOsheremetevo: 1300,
+            SVAOsheremetevo: 1200,
+            CAOsheremetevo: 1300,
+            SAOdomodedovo: 1400,
+            SZAOdomodedovo: 1400,
+            ZAOdomodedovo: 1300,
+            UZAOdomodedovo: 1300,
+            UAOdomodedovo: 1200,
+            UVAOdomodedovo: 1300,
+            VAOdomodedovo: 1300,
+            SVAOdomodedovo: 1400,
+            CAOdomodedovo: 1300,
+            SAOvnukovo: 1300,
+            SZAOvnukovo: 1300,
+            ZAOvnukovo: 1200,
+            UZAOvnukovo: 1200,
+            UAOvnukovo: 1300,
+            UVAOvnukovo: 1300,
+            VAOvnukovo: 1400,
+            SVAOvnukovo: 1400,
+            CAOvnukovo: 1300
+        }, //
+        airportToMoscow : {
+            sheremetevoSAO: 1400,
+            sheremetevoSZAO: 1400,
+            sheremetevoZAO: 1500,
+            sheremetevoUZAO: 1600,
+            sheremetevoUAO: 1600,
+            sheremetevoUVAO: 1600,
+            sheremetevoVAO: 1500,
+            sheremetevoSVAO: 1400,
+            sheremetevoCAO: 1500,
+            domodedovoSAO: 1600,
+            domodedovoSZAO: 1600,
+            domodedovoZAO: 1500,
+            domodedovoUZAO: 1500,
+            domodedovoUAO: 1400,
+            domodedovoUVAO: 1500,
+            domodedovoVAO: 1500,
+            domodedovoSVAO: 1600,
+            domodedovoCAO: 1500,
+            vnukovoSAO: 1500,
+            vnukovoSZAO: 1500,
+            vnukovoZAO: 1400,
+            vnukovoUZAO: 1400,
+            vnukovoUAO: 1500,
+            vnukovoUVAO: 1500,
+            vnukovoVAO: 1600,
+            vnukovoSVAO: 1600,
+            vnukovoCAO: 1500
+        }, //
+        sheremetevoDomodedovo : 2200,   // Шереметьево – Домодедово
+        domodedovoVnukovo : 1600,     // Внуково  – Домодедово
+        sheremetevoVnukovo : 1800,    // Шереметьево – Внуково
+        sheremetevo1Sheremetevo2 : 700, // Шереметьево 1 – Шереметьево 2
+        meeting : 0,          // встреча
+        ringRoad : 5,         // Поездка по МКАД  
+        outsideRingRoad : 15,     // Поездка за МКАД  
+        average : 0,          // средний
+        meetingAeroport : 0,
+        universal: 200,
+        child: 150,
+        animal: 150
+    },
+    comfortType : {
+        dayMin : 500,
+        nightMin: 550,
+        minimalDuration : 30,
+        rubPerPeriod : 13,
+        rubPerPeriodN : 14,
+        minInPeriod : 1,
+        moscowToAirport : {
+            SAOsheremetevo: 1300,
+            SZAOsheremetevo: 1300,
+            ZAOsheremetevo: 1400,
+            UZAOsheremetevo: 1500,
+            UAOsheremetevo: 1500,
+            UVAOsheremetevo: 1500,
+            VAOsheremetevo: 1400,
+            SVAOsheremetevo: 1300,
+            CAOsheremetevo: 1400,
+            SAOdomodedovo: 1500,
+            SZAOdomodedovo: 1500,
+            ZAOdomodedovo: 1400,
+            UZAOdomodedovo: 1400,
+            UAOdomodedovo: 1300,
+            UVAOdomodedovo: 1400,
+            VAOdomodedovo: 1400,
+            SVAOdomodedovo: 1500,
+            CAOdomodedovo: 1400,
+            SAOvnukovo: 1400,
+            SZAOvnukovo: 1400,
+            ZAOvnukovo: 1300,
+            UZAOvnukovo: 1300,
+            UAOvnukovo: 1400,
+            UVAOvnukovo: 1400,
+            VAOvnukovo: 1500,
+            SVAOvnukovo: 1500,
+            CAOvnukovo: 1400
+        }, //
+        airportToMoscow : {
+            sheremetevoSAO: 1600,
+            sheremetevoSZAO: 1600,
+            sheremetevoZAO: 1700,
+            sheremetevoUZAO: 1800,
+            sheremetevoUAO: 1800,
+            sheremetevoUVAO: 1800,
+            sheremetevoVAO: 1700,
+            sheremetevoSVAO: 1600,
+            sheremetevoCAO: 1700,
+            domodedovoSAO: 1800,
+            domodedovoSZAO: 1800,
+            domodedovoZAO: 1700,
+            domodedovoUZAO: 1700,
+            domodedovoUAO: 1600,
+            domodedovoUVAO: 1700,
+            domodedovoVAO: 1700,
+            domodedovoSVAO: 1800,
+            domodedovoCAO: 1700,
+            vnukovoSAO: 1700,
+            vnukovoSZAO: 1700,
+            vnukovoZAO: 1600,
+            vnukovoUZAO: 1600,
+            vnukovoUAO: 1700,
+            vnukovoUVAO: 1700,
+            vnukovoVAO: 1800,
+            vnukovoSVAO: 1800,
+            vnukovoCAO: 1700
+        }, //
+        sheremetevoDomodedovo : 2400,   // Шереметьево – Домодедово
+        domodedovoVnukovo : 1800,     // Внуково  – Домодедово
+        sheremetevoVnukovo : 2000,    // Шереметьево – Внуково
+        sheremetevo1Sheremetevo2 : 800, // Шереметьево 1 – Шереметьево 2
+        meeting : 0,          // встреча
+        ringRoad : 5,         // Поездка по МКАД  
+        outsideRingRoad : 20,     // Поездка за МКАД  
+        average : 0,          // средний
+        meetingAeroport : 0,
+        universal: 200,
+        child: 150,
+        animal: 150
+    },
+    businessType : {
+        dayMin : 750,
+        nightMin: 750,
+        minimalDuration : 25,
+        rubPerPeriod : 25,
+        rubPerPeriodN : 25,
+        minInPeriod : 1,
+        moscowToAirport : {
+            SAOsheremetevo: 2200,
+            SZAOsheremetevo: 2200,
+            ZAOsheremetevo: 2200,
+            UZAOsheremetevo: 2200,
+            UAOsheremetevo: 2200,
+            UVAOsheremetevo: 2200,
+            VAOsheremetevo: 2200,
+            SVAOsheremetevo: 2200,
+            CAOsheremetevo: 2200,
+            SAOdomodedovo: 2200,
+            SZAOdomodedovo: 2200,
+            ZAOdomodedovo: 2200,
+            UZAOdomodedovo: 2200,
+            UAOdomodedovo: 2200,
+            UVAOdomodedovo: 2200,
+            VAOdomodedovo: 2200,
+            SVAOdomodedovo: 2200,
+            CAOdomodedovo: 2200,
+            SAOvnukovo: 2200,
+            SZAOvnukovo: 2200,
+            ZAOvnukovo: 2200,
+            UZAOvnukovo: 2200,
+            UAOvnukovo: 2200,
+            UVAOvnukovo: 2200,
+            VAOvnukovo: 2200,
+            SVAOvnukovo: 2200,
+            CAOvnukovo: 2200
+        }, //
+        airportToMoscow : {
+            sheremetevoSAO: 2500,
+            sheremetevoSZAO: 2500,
+            sheremetevoZAO: 2500,
+            sheremetevoUZAO: 2500,
+            sheremetevoUAO: 2500,
+            sheremetevoUVAO: 2500,
+            sheremetevoVAO: 2500,
+            sheremetevoSVAO: 2500,
+            sheremetevoCAO: 2500,
+            domodedovoSAO: 2500,
+            domodedovoSZAO: 2500,
+            domodedovoZAO: 2500,
+            domodedovoUZAO: 2500,
+            domodedovoUAO: 2500,
+            domodedovoUVAO: 2500,
+            domodedovoVAO: 2500,
+            domodedovoSVAO: 2500,
+            domodedovoCAO: 2500,
+            vnukovoSAO: 2500,
+            vnukovoSZAO: 2500,
+            vnukovoZAO: 2500,
+            vnukovoUZAO: 2500,
+            vnukovoUAO: 2500,
+            vnukovoUVAO: 2500,
+            vnukovoVAO: 2500,
+            vnukovoSVAO: 2500,
+            vnukovoCAO: 2500
+        }, //
+        sheremetevoDomodedovo : 3000,   // Шереметьево – Домодедово
+        domodedovoVnukovo : 3000,     // Внуково  – Домодедово
+        sheremetevoVnukovo : 3000,    // Шереметьево – Внуково
+        sheremetevo1Sheremetevo2 : 1300, // Шереметьево 1 – Шереметьево 2
+        meeting : 0,          // встреча
+        ringRoad : 10,          // Поездка по МКАД  
+        outsideRingRoad : 20,     // Поездка за МКАД  
+        average : 0,          // средний
+        meetingAeroport : 0,
+        universal: 0,
+        child: 0,
+        animal: 200
+    }
+};
+
+
+showobj=function(obj){var s=''; for(prop in obj){if(typeof obj[prop]!='function'){s+='\nobj['+prop+']='+obj[prop]+'; '}} alert(s) }
+
+var terminalPolygons = [];
+var showBorders = false;
+
+function MapWorker($){
+    var flag_use=false;
+    var that = this;
+    var city = '';
+    var from,to, waypoints, number_of_segments, cur_point_index, cur_point, next_point_index, next_point, circular_road_km, circular_road_min, suburb_km, suburb_min, duration;
+    var $from,$to,traffic,suburb_serve_km,suburb_serve_min;
+    var code_area;
+    var meetingNeeded = false;
+    var needRefreshPrice = false;
+
+    var carTypesNames = ["econom","comfort","business"];
+    var carType = carTypesNames[0];
+    var sheremetevo = "Шереметьево";
+    var vnukovo = "Внуково";
+    var domodedovo = "Домодедово";
+
+    function createMap(){
+        map1 = new YMaps.Map($("#ymaps2").get(0));
+        map1.setCenter(new YMaps.GeoPoint(37.64, 55.76), 10);
+        map1.addControl(new YMaps.Zoom());
+        map1.enableScrollZoom(true);
+        map1.addControl(new YMaps.Traffic.Control(), new YMaps.ControlPosition(YMaps.ControlPosition.TOP_RIGHT, new YMaps.Point(5, 5)));
+        var style,style2;
+            style = new YMaps.Style("default#greenPoint");
+            style.polygonStyle = new YMaps.PolygonStyle();
+            style.polygonStyle.fill = 0;
+            style.polygonStyle.outline = 0;
+            style.polygonStyle.strokeWidth = 0;
+            YMaps.Styles.add("polygon#Example", style);
+
+            style2 = new YMaps.Style("default#greenPoint");
+            style2.polygonStyle = new YMaps.PolygonStyle();
+            style2.polygonStyle.fill = 0;
+            style2.polygonStyle.outline = 0;
+            style2.polygonStyle.strokeWidth = 0;
+            YMaps.Styles.add("polygon#Example2", style2);
+
+    }
+
+    this.onReady = function(){
+        $('#adres2').val('Адрес *');
+        $("#about2").val(get_cookie("phone"));
+        $("#about1").val(get_cookie("name_sername"));
+        var intervalID = setInterval(function() {
+            var date = new Date();
+            date.setTime(Date.now() + (30 * 60 * 1000));
+            $("#time1").val(date.getHours() + " часа");
+            $("#time2").val(date.getMinutes() + " мин");
+        }, 1000);
+
+        $("#time1, #time2").click(function() {
+            clearInterval(intervalID);    
+        });
+        $.ajax({
+            url : '/time.php',
+            type: 'GET',
+            success : timeCallback
+        });
+                
+        $("#startcalc").click(function(){
+            $("#tarrif").text("По фиксированной стоимости");
+            var flag = true;
+                      $('#or').hide();      
+                 if($('#RadioAdres1Adres').is(":checked")) {
+                    $from = processAddress($("#adres1").val());
+                    if($('#adres1').val() == 'Адрес подачи *' && !$('#RadioAdres1Aero').is(":checked")) {
+                        $('#adres1').addClass('error');
+                        flag = false;
+                    }
+                }
+                if($('#RadioAdres1Vokzal').is(":checked")) {
+                    $from = processAddress($("#vokzal1").val());
+                }
+                if($('#RadioAdres1Aero').is(":checked")) {
+                    $from = processAddress($("#aero1").val());
+                }
+
+                if($('#RadioAdres2Adres').is(":checked")) {
+                    $to = processAddress($("#adres2").val());
+                    if($('#adres2').val() == 'Адрес *' && !$('#RadioAdres2Aero').is(":checked")) {
+                        $('#adres2').addClass('error');
+                        flag = false;
+                    }
+                }
+                if($('#RadioAdres2Vokzal').is(":checked")) {
+                    $to= processAddress($("#vokzal2").val());
+                }
+                if($('#RadioAdres2Aero').is(":checked")) {
+                    $to = processAddress($("#aero2").val());
+                }
+                if (flag) {
+                if($.trim($from).length && $.trim($to).length){
+                    $("div#check" ).fadeIn( "fast" );
+                    $("#startcalc_back").show();
+                    $("#tarrif").text("По фиксированной стоимости");
+                    createMap();
+                    if($from == $to){ 
+                        alert('Пункт подачи совпадает с пунктом назначения!'); return false; 
+
+                    }
+                    traffic = true;
+                    map1.removeAllOverlays();
+                    that.show($from, $to, traffic);
+                    
+                        
+                } 
+                else {
+                    alert("Недостаточно данных для расчета!");
+                }
+            }        
+        });
+
+
+
+        $("input[name=smoke]").click(function(){
+            if($(this).val() == 1) {
+                $("#active_nosmoke").show();
+            }
+            else {
+                $("#active_nosmoke").hide();
+            }
+        });
+        $("#kc1").click(function(){
+            if($(this).is(":checked")) {
+                $("#aktiv_creslo_det").show();
+            }
+            else {
+               $("#aktiv_creslo_det").hide(); 
+            }
+        });
+        $(".order-form-button input, #startcalc, #order-form-bg1 #close ").click(function() {
+            var phone = $("#about2").val();
+                
+            var name_sername = $("#about1").val();
+            set_cookie ("phone", phone);
+            set_cookie ("name_sername", name_sername);
+            });
+
+        $("#startcalc_back").click(function () {
+            $("#from").html(0);
+            $("#to").html(0);
+            $("#dist").html(0);
+            $("#timeD").html(0);
+            $("#alg_mkad").html(0);
+            $("#out_mkad").html(0);
+            $("#price").html('<strong>' + 0 + '<strong>'); 
+            $("#fixedPrice").val(0);
+            $('#adres1').val('Адрес подачи *');
+            $('#adres2').val('Адрес');
+            $('#poezd1').val('Номер поезда');
+            $('#vagon1').val('Номер вагона ');
+            $('#reis1').val('Номер рейса *');
+            $( "div#check" ).fadeOut( "fast" );
+            $("#startcalc_back").hide();
+            $("#tarrif").text("По временному тарифу");
+            setTimeout(function() {map1.removeAllOverlays();}, 500);
+            $('#or').show();
+
+        });
+        $("#order-form-bg1 #close").click(function () {
+            $("#from").html(0);
+            $("#to").html(0);
+            $("#dist").html(0);
+            $("#timeD").html(0);
+            $("#alg_mkad").html(0);
+            $("#out_mkad").html(0);
+            $("#price").html('<strong>' + 0 + '<strong>'); 
+            $("#fixedPrice").val(0);
+            $("div#check" ).hide();
+            $("#startcalc_back").hide();
+            $("#tarrif").text("По временному тарифу");
+            setTimeout(function() {map1.removeAllOverlays();}, 500);
+        });
+        $("input[name*=radio-adres]").change(function(){                
+                    var el_id = $(this).attr("id");
+                if (el_id == "RadioAdres1Vokzal") {
+                    $(".list-items").hide();
+                    $("#Adres1Vokzal .list .list-items").show();
+                }else if(el_id == "RadioAdres2Vokzal"){
+                    $(".list-items").hide();
+                    $("#Adres2Vokzal .list .list-items").show();
+                }else if(el_id == "RadioAdres1Aero"){
+                    $(".list-items").hide();
+                    $("#Adres1Aero .list .list-items").show();
+                }else if(el_id == "RadioAdres2Aero"){
+                    $(".list-items").hide();
+                    $("#Adres2Aero .list .list-items").show();
+                }
+                console.log(el_id);
+            if ($("#RadioAdres1Aero").attr("checked") || $("#RadioAdres2Aero").attr("checked")) {
+                $("#we_can").hide(); 
+            }
+            else{
+                $("#we_can").show(); 
+
+            }
+            if($('td').is('#price')){
+                console.log($('#price').val());
+            }            
+                 });
+        $("input[name*=radio-adres]").click(function(){
+                $("#price").html('<strong>' + 0 + "&nbsp;руб </strong>");
+                $("#tarrif").text("По временному тарифу");
+            });
+        $(".select").click(function(){
+                $("#price").html('<strong>' + 0 + "&nbsp;руб </strong>");
+                $("#tarrif").text("По временному тарифу");
+            });
+         $("#class1,#class0,#class2,#kc1,#tc1,#ha1").click(function(){
+                $("#price").html('<strong>' + 0 + "&nbsp;руб </strong>");
+                $("#tarrif").text("По временному тарифу");
+            });
+
+        
+
+
+        
+        $(".select").click(function() {
+            $(".list-items").hide();
+            $(this).next().show();
+        });
+        $('.list-items').change(function(){
+
+            calcPrice();
+
+        });
+        
+        // $("input[name=radio-adres2]").change(function(){
+        //     //console.log(this);
+        //     var el_id = $(this).attr("id");
+        //     console.log(el_id);
+        //     if (el_id == "RadioAdres2Vokzal") {
+        //         $("#Adres2Vokzal .list .list-items").show();
+        //         $("#ListTime1, #ListTime2").hide();
+        //     }           
+        //     if (el_id != "RadioAdres2Aero") {
+                          
+        //           $("#we_can").show();  
+                                
+        //     }
+        //     else if(el_id == "RadioAdres2Aero"){
+        //         $("#Adres2Aero .list .list-items").show(); 
+        //         $("#we_can").hide(); 
+        //     }
+        //         });
+
+        $('#time1, #time2').click(function(){
+            $("#Adres2Vokzal .list .list-items,#Adres2Aero .list .list-items,Adres1Aero .list .list-items,#Adres1Vokzal .list .list-items").hide();
+
+        });
+        // $("#vokzal1").click(function() {
+        //     if($("#Adres1Vokzal .list .list-items").is(":hidden")) {
+        //         alert("333");
+        //     }
+        //     else {
+        //         alert("2222");   
+        //     }
+        // });
+
+        };
+        
+        
+//          $(input["#Adres2Vokzal .list .list-items span"]).mouseover(function(){   
+// $("p").css("background-color","yellow");
+//            });
+       
+    function timeCallback(data){
+console.log(data);
+}
+
+    function get_cookie ( cookie_name ) {
+      var results = document.cookie.match ( '(^|;) ?' + cookie_name + '=([^;]*)(;|$)' );
+     
+      if ( results )
+        return ( unescape ( results[2] ) );
+      else
+        return null;
+    }
+
+    function set_cookie ( name, value, exp_y, exp_m, exp_d, path, domain, secure ) {
+      var cookie_string = name + "=" + escape ( value );
+     
+      if ( exp_y )
+      {
+        var expires = new Date ( exp_y, exp_m, exp_d );
+        cookie_string += "; expires=" + expires.toGMTString();
+      }
+     
+      if ( path )
+            cookie_string += "; path=" + escape ( path );
+     
+      if ( domain )
+            cookie_string += "; domain=" + escape ( domain );
+      
+      if ( secure )
+            cookie_string += "; secure";
+      
+      document.cookie = cookie_string;
+    }
+
+    function processAddress(address){ return address; }
+    function toFixed(value, precision){ 
+        var power = Math.pow(10, precision || 0); 
+        return String(Math.round(value * power) / power) 
+    }
+
+    this.show = function (pre_from, pre_to, pre_traffic){
+        from = pre_from;
+        to = pre_to;
+        traffic = pre_traffic;
+
+        var waypoints = [from,to];
+        var router = new YMaps.Router(waypoints, [], {viewAutoApply: 1, avoidTrafficJams: traffic});
+        new YMaps.Events.observe(router, router.Events.Success, extract_data_from_router);
+        YMaps.Events.observe(router, router.Events.Fault, function(at){console.log(at); alert('Не удалось соединиться с картографическим сервером', 'error') });
+        YMaps.Events.observe(router, router.Events.GeocodeError, function(object, point_number){alert('Не удалось вычислить географические координаты точки "' + waypoints[point_number] + '" в регионе Москва', 'error') });
+        YMaps.Events.observe(router, router.Events.RouteError, function(object, point_number){ alert('Не удалось проложить маршрут к точке "' + waypoints[point_number] + '" в регионе Москва', 'error') });
+    };
+
+    function inside_circular_road(a){
+        var X = [37.50663757324219,37.42698669433594,37.40947723388672,37.38372802734375,37.363128662109375,37.366905212402344,37.3809814453125,37.392311096191406,37.38750457763672,37.401580810546875,37.446556091308594,37.464752197265625,37.526893615722656,37.58079528808594,37.644309997558594,37.69786834716797,37.8369140625,37.84172058105469,37.848243713378906,37.84412384033203,37.83313751220703,37.84584045410156,37.736663818359375,37.67383575439453,37.58800506591797];
+        var Y = [55.59522540012757,55.66306304713546,55.68958466999194,55.71009271344361,55.751656176679255,55.787577714316704,55.8045613172881,55.837156788363565,55.84852984240601,55.87011021700465,55.885132326344426,55.886095083843635,55.90861679246706,55.914004664397375,55.89995614406812,55.89668384026084,55.82790167952735,55.82057315625548,55.771166064828556,55.713574142662694,55.69480943831871,55.65725299247944,55.59076338488527,55.56980452798329,55.57485120131226];
+        var x = a.getLng();
+        var y = a.getLat();
+        var e = false;
+        var b = X.length;
+        for(var d = 0,c = b - 1; d < b; c = d++){ 
+            if((((Y[d] <= y) && (y < Y[c])) || ((Y[c] <= y) && (y < Y[d]))) && (x > (X[c] - X[d]) * (y - Y[d]) / (Y[c] - Y[d]) + X[d])){ 
+                e = !e;  
+            } 
+        }
+        return e;
+    }
+
+    function calculate_distance_outcity(route, cur_point_index, next_point_index){
+        var next_inside_circular_road = inside_circular_road(route.getPoint(next_point_index));
+        var cur_inside_circular_road, distance = 0;
+        for(var i = Number(cur_point_index); i < Number(next_point_index); i++) {
+            cur_inside_circular_road = next_inside_circular_road;
+            next_inside_circular_road = inside_circular_road(route.getPoint(i + 1));
+            if(!(cur_inside_circular_road && next_inside_circular_road)) distance += route.getPoint(i).distance(route.getPoint(i + 1));
+        }
+        return distance;
+    }
+   
+    function extract_data_from_router(router) {
+        var route = router.getRoute(0);
+   number_of_segments = route.getNumRouteSegments();
+
+   suburb_serve_km = 0;
+   suburb_serve_min = 0;
+   for(var i = 0; i < number_of_segments; i++){
+    var cur_segment = route.getRouteSegment(i); 
+
+    cur_point_index = cur_segment.getPolylineIndex();
+    cur_point = route.getPoint(cur_point_index);
+
+    next_point_index = (i + 1 == number_of_segments) ? (route.getNumPoints() - 1) : route.getRouteSegment(i + 1).getPolylineIndex();
+    next_point = route.getPoint(next_point_index);
+    var rstart_in_city = inside_circular_road(cur_point);
+    var rfinish_in_city = inside_circular_road(next_point);
+    if(!rfinish_in_city && !rstart_in_city){
+     suburb_serve_km += cur_segment.getDistance();
+     suburb_serve_min += cur_segment.getDuration();
+    }
+    else if(!(rfinish_in_city && rstart_in_city)){
+     suburb_serve_km += calculate_distance_outcity(route, cur_point_index, next_point_index);
+     suburb_serve_min += 60 * suburb_serve_km / 1000;
+    }
+   }
+   
+   var traffic_control = new YMaps.Traffic.Control();
+   var precision = [router.getWayPoint(0).text != 'Россия, Москва', router.getWayPoint(1).text != 'Россия!, Москва'];
+   if(precision[0] && precision[1]){
+    for(i = 0; i < 2; i++){
+     if(router.getWayPoint(i).text.search(/вокзал/) != -1) router.getWayPoint(i).setStyle('plain#orangePoint');
+     else router.getWayPoint(i).setStyle('plain#orangePoint');
+          
+    }
+    if(prevRes) map1.removeOverlay(prevRes);
+
+
+    $("#fromcoord").val(router.getWayPoint(0)._point.__lat + ', ' + router.getWayPoint(0)._point.__lng);
+    $("#tocoord").val(router.getWayPoint(1)._point.__lat + ', ' + router.getWayPoint(1)._point.__lng);
+
+    router.getWayPoint(0).setIconContent($from);
+    router.getWayPoint(1).setIconContent($to);
+    //  $from = router.getWayPoint(0).text;
+    //  $to = router.getWayPoint(1).text;
+    map1.addOverlay(router);
+    prevRes = router;
+
+    number_of_segments = route.getNumRouteSegments();
+    circular_road_km = 0;
+    circular_road_min = 0;
+
+   suburb_km = 0;
+   suburb_min = 0;
+
+   TIME = 0; 
+   DIST_OVER_TIME = 0; 
+
+        var coeffs = carTypes[carTypesNames[$('input[name=class]:checked').val()] + "Type"];
+
+        for(i = 0; i < number_of_segments; i++) {
+            var cur_segment = route.getRouteSegment(i);
+            TIME += cur_segment.getDuration(); if(Math.ceil(TIME / 60) > coeffs["minimalDuration"]) DIST_OVER_TIME += cur_segment.getDistance();
+            if(cur_segment.getStreet() == 'МКАД'){
+                circular_road_km += cur_segment.getDistance();
+                circular_road_min += cur_segment.getDuration();
+            }
+            else {
+                cur_point_index = cur_segment.getPolylineIndex();
+                cur_point = route.getPoint(cur_point_index);
+                next_point_index = (i + 1 == number_of_segments) ? (route.getNumPoints() - 1) : route.getRouteSegment(i + 1).getPolylineIndex();
+                next_point = route.getPoint(next_point_index);
+                var rstart_in_city = inside_circular_road(cur_point);
+                var rfinish_in_city = inside_circular_road(next_point);
+                if(!rfinish_in_city && !rstart_in_city ){
+                    suburb_km += cur_segment.getDistance();
+                    suburb_min += cur_segment.getDuration();
+                }
+                else if(!(rfinish_in_city && rstart_in_city)) {
+                    suburb_km += calculate_distance_outcity(route, cur_point_index, next_point_index);
+                    suburb_min += 60 * suburb_km / 1000;
+                }
+            }
+        }
+
+        var distance = router.getDistance() / 1000;
+        duration = Math.ceil(router.getDuration() / 60);
+        circular_road_km = circular_road_km / 1000;
+        circular_road_min = Math.ceil(circular_road_min / 60);
+        suburb_km = suburb_km / 1000;
+        suburb_km = suburb_km.toFixed(1); 
+
+        suburb_min = Math.ceil(suburb_min / 60);
+        suburb_serve_km = suburb_serve_km / 1000;
+        suburb_serve_min = Math.ceil(suburb_serve_min / 60);
+
+        $("#from").html($from);
+        $("#to").html($to);
+        $("#dist").html(distance.toFixed(1).toString() + "&nbsp;км.");
+        $("#timeD").html(thisInterval(duration.toFixed(0)));
+        $("#alg_mkad").html(circular_road_km.toFixed(1).toString() + "&nbsp;км.");
+        $("#out_mkad").html(suburb_km + "&nbsp;км.");
+
+        if(DIST_OVER_TIME > 0){ DIST_OVER_TIME = DIST_OVER_TIME / 1000; DIST_OVER_TIME = DIST_OVER_TIME.toFixed(1) } 
+            calcPrice();
+        needRefreshPrice = true;
+        }
+        else{
+            var point_number;
+            if(!precision[0]) point_number = 0; else point_number = 1;
+            var geocoder = new YMaps.Geocoder(waypoints[point_number], {results:1});
+            var error_string = 'Не удалось вычислить географические координаты точки «' + waypoints[point_number] + '» в регионе Москва.';
+            YMaps.Events.observe(geocoder, geocoder.Events.Fault, function (){ alert(error_string, 'error') });
+        }
+    }
+
+    
+    function thisInterval(current){
+        var word_list = ["минуту","минуты","минут"];
+        var last = current % 10;
+        if(current % 100 >= 5 && current % 100 <= 20) return current + " " + word_list[2];
+        if(last == 1) return current + " " + word_list[0];
+        if(last >= 2 && last <= 4) return current + " " + word_list[1];
+        if(last >= 5 && last <= 9) return current + " " + word_list[2];
+        if(last == 0) return current + " " + word_list[2];
+    }
+
+  calcPrice = function(){  
+      var price = 0;
+    if($from != $to) {      
+      var coeffs = carTypes[carTypesNames[$('input[name=class]:checked').val()] + "Type"];
+      $('.header p.DIST_OVER_TIME').html('');
+
+      if(isSpecialCase()){
+        if(isAeroport($from) && isAeroport($to)){
+          if((isAeroport($from, domodedovo) && isAeroport($to, vnukovo)) || (isAeroport($from, vnukovo) && isAeroport($to, domodedovo))) 
+            price += coeffs["domodedovoVnukovo"]
+          else if((isAeroport($from, domodedovo) && isAeroport($to, sheremetevo)) || (isAeroport($from, sheremetevo) && isAeroport($to, domodedovo))) price += coeffs["sheremetevoDomodedovo"]
+          else if((isAeroport($from, vnukovo) && isAeroport($to, sheremetevo)) || (isAeroport($from, sheremetevo) && isAeroport($to, vnukovo))) price 
+            price += coeffs["sheremetevoVnukovo"]
+
+        } 
+      else{
+        var aeroport;
+        var minus = 0;
+        
+        geocoder = new google.maps.Geocoder();
+
+        if(isAeroport($from)){
+            console.log($from);
+             geocoder.geocode( { 'address': $to}, function (results, status) {
+                if( status == google.maps.GeocoderStatus.OK ) {
+                    var area = '';
+                    for(var i = 0; i < results[0].address_components.length; i++){
+                        if (results[0].address_components[i].types[0] == 'sublocality'){
+                            area = results[0].address_components[i].long_name;
+                        }
+                    }
+
+                    switch (area) {
+                        case 'Северо-Восточный административный округ':
+                            code_area = 'SVAO';                         
+                            break
+                        case 'Южный административный округ':
+                            code_area = 'UAO';                         
+                            break
+                        case 'Северный административный округ':
+                            code_area = 'SAO';                         
+                            break
+                        case 'Северо-Западный административный округ':
+                            code_area = 'SZAO';                         
+                            break
+                        case 'Западный административный округ':
+                            code_area = 'ZAO';                         
+                            break
+                        case 'Юго-Западный административный округ':
+                            code_area = 'UZAO';                         
+                            break
+                        case 'Юго-Восточный административный округ':
+                            code_area = 'UVAO';                         
+                            break
+                        case 'Восточный административный округ':
+                            code_area = 'VAO';                         
+                            break
+                        case 'Северо-Восточный административный округ':
+                            code_area = 'SVAO';                         
+                            break
+                        case 'Центральный административный округ':
+                            code_area = 'CAO';                         
+                            break
+                    }
+
+                    switch ($from) {
+                        case 'Шереметьево B':
+                            code_aeroport = 'sheremetevo';
+                            break
+                        case 'Шереметьево C':
+                            code_aeroport = 'sheremetevo';
+                            break
+                        case 'Шереметьево D':
+                            code_aeroport = 'sheremetevo';
+                            break
+                            case 'Шереметьево E':
+                            code_aeroport = 'sheremetevo';
+                            break;
+                        case 'Шереметьево F':
+                            code_aeroport = 'sheremetevo';
+                            break
+                        case 'Домодедово':
+                            code_aeroport = 'domodedovo';
+                            break
+                        case 'Внуково':
+                            code_aeroport = 'vnukovo';
+                            break
+                    }
+
+                    //console.log(coeffs["airportToMoscow"][code_aeroport+code_area]);
+                     price = coeffs["airportToMoscow"][code_aeroport+code_area]; aeroport = $from;
+                     // price+=1;
+                        if($("#tc1").is(":checked")) {
+                            price += coeffs["universal"];
+                                }       
+                        if($("#kc1").is(":checked")) {
+                                price += coeffs["child"];
+                            }
+                            
+                        if($("#ha1").is(":checked")) {
+                                price += coeffs["animal"];
+                            }
+                        // if(inside_circular_road(cur_point)){ // подача за мкад
+                        //       price += suburb_km * coeffs["outsideRingRoad"]; // за мкад
+                        //     }
+                        if(restDay($('#date1').val(),parseInt($('#time1').val()),parseInt($('#time2').val()))){
+                                price+=50;  
+                            }
+
+                    $("#price").html('<strong>' + toFixed(Math.round(price*100)/100,0) + "&nbsp;руб </strong>");
+                    $("#fixedPrice").val(toFixed(Math.round(price*100)/100,0));
+                }
+            })
+        } 
+        else{           
+            geocoder.geocode( { 'address': $from}, function (results, status) {
+                if( status == google.maps.GeocoderStatus.OK ) {
+                    var area = '';
+                    for(var i = 0; i < results[0].address_components.length; i++){
+                        if (results[0].address_components[i].types[0] == 'sublocality'){
+                            area = results[0].address_components[i].long_name;
+                        }
+                    }
+                    switch (area) {
+                        case 'Северо-Восточный административный округ':
+                            code_area = 'SVAO';                         
+                            break
+                        case 'Южный административный округ':
+                            code_area = 'UAO';                         
+                            break
+                        case 'Северный административный округ':
+                            code_area = 'SAO';                         
+                            break
+                        case 'Северо-Западный административный округ':
+                            code_area = 'SZAO';                         
+                            break
+                        case 'Западный административный округ':
+                            code_area = 'ZAO';                         
+                            break
+                        case 'Юго-Западный административный округ':
+                            code_area = 'UZAO';                         
+                            break
+                        case 'Юго-Восточный административный округ':
+                            code_area = 'UVAO';                         
+                            break
+                        case 'Восточный административный округ':
+                            code_area = 'VAO';                         
+                            break
+                        case 'Северо-Восточный административный округ':
+                            code_area = 'SVAO';                         
+                            break
+                        case 'Центральный административный округ':
+                            code_area = 'CAO';                         
+                            break
+                    }
+
+                    switch ($to) {
+                        case 'Шереметьево B':
+                            code_aeroport = 'sheremetevo';
+                            break;
+                        case 'Шереметьево C':
+                            code_aeroport = 'sheremetevo';
+                            break;
+                        case 'Шереметьево D':
+                            code_aeroport = 'sheremetevo';
+                            break;
+                        case 'Шереметьево E':
+                            code_aeroport = 'sheremetevo';
+                            break;
+                        case 'Шереметьево F':
+                            code_aeroport = 'sheremetevo';
+                            break;
+
+                        case 'Домодедово':
+                            code_aeroport = 'domodedovo';
+                            break
+                        case 'Внуково':
+                            code_aeroport = 'vnukovo';
+                            break
+                    }
+
+                    price += coeffs["moscowToAirport"][code_area+code_aeroport]; aeroport = $to ;
+
+
+                    $("#price").html('<strong>' + toFixed(Math.round(price*100)/100,0) + "&nbsp;руб </strong>");
+                    $("#fixedPrice").val(toFixed(Math.round(price*100)/100,0));
+                }
+            })          
+        }
+      }
+    } 
+    else{
+        var date = new Date();
+        number_day = date.getDate();
+        if(number_day == 9 || number_day == 10 || number_day == 11) {
+            DayNight = 'nightMin';
+        }
+        else {
+            DayNight = 'dayMin';
+            var hours = $('#time1').val().split(' ');
+            hours = hours[0];
+            var minutes = $('#time2').val().split(' ');
+            minutes = minutes[0];
+            if (hours >= 22 || hours <= 8) {
+                DayNight = 'nightMin';
+            }
+           
+        }
+
+        //price += (price/100)*5;
+        price += coeffs[DayNight]; // мин стоимость
+
+        if(duration > coeffs["minimalDuration"]){
+          var periodCount = duration - coeffs["minimalDuration"];
+          price += DayNight == 'dayMin' ? coeffs["rubPerPeriod"] * periodCount : coeffs["rubPerPeriodN"] * periodCount;
+        }
+
+        price += circular_road_km * coeffs["ringRoad"]; // по мкад
+        price += suburb_km * coeffs["outsideRingRoad"]; // за мкад
+
+            
+      }
+    }
+    
+        if(~$from.indexOf('Шереметьево') && ~$to.indexOf('Шереметьево')){
+            var price = 0;
+            price = 700;            
+        }
+        if((~$from.indexOf('Домодедово') && ~$to.indexOf('Внуково')) || ~$from.indexOf('Внуково') && (~$to.indexOf('Домодедово')))
+        {
+            var price = 0;
+            price = 1600;           
+        }
+        if((~$from.indexOf('Домодедово') && ~$to.indexOf('Шереметьево')) || ~$from.indexOf('Шереметьево') && (~$to.indexOf('Домодедово')))
+        {
+            var price = 0;
+            price = 2200;            
+        }
+// price += (price/100)*5
+function restDay(date,time1,time2){    
+    var arr = date.split('.')
+    function date2timestamp(year, month, day, hour, min, sec) { 
+        return (Date.UTC(year, month-1, day, hour, min, sec) / 1000); 
+    }
+    function timestamp2date(timestamp) { 
+        var theDate = new Date(timestamp * 1000); 
+        return theDate.toGMTString(); 
+    }
+    function holiday(arr){
+        if((arr[0]==1 && arr[1]==1)||(arr[0]==7 && arr[1]==1)||(arr[0]==9 && arr[1]==5)||(arr[0]==8 && arr[1]==3)||(arr[0]==3 && arr[1]==1)||(arr[0]==6 && arr[1]==1)||(arr[0]==8 && arr[1]==1)||(arr[0]==2 && arr[1]==1)||(arr[0]==12 && arr[1]==6)||(arr[0]==4 && arr[1]==11)||(arr[0]==1 && arr[1]==9)||(arr[0]==13 && arr[1]==6)||(arr[0]==3 && arr[1]==11)){
+        return true;}            
+    }   
+    var wDay = timestamp2date(date2timestamp(arr[2],arr[1],arr[0],time1,time2,10));
+    arr2 = wDay.split(',');    
+        if(arr2[0]=='Sat' || arr2[0]=='Sun' || holiday(arr)){
+            return true;
+        }   
+}
+
+    if($("#tc1").is(":checked")) {
+            price += coeffs["universal"];
+        }       
+    if($("#kc1").is(":checked")) {
+            price += coeffs["child"];
+        }
+        
+    if($("#ha1").is(":checked")) {
+            price += coeffs["animal"];
+        }
+    if(inside_circular_road(cur_point)){ // подача за мкад
+          price += suburb_km * coeffs["outsideRingRoad"]; // за мкад
+        }
+    if(restDay($('#date1').val(),parseInt($('#time1').val()),parseInt($('#time2').val()))){
+            price+=50;  
+        }
+        flag_use=true;
+     $("#price").html('<strong>' + toFixed(Math.round(price/10)*10,0) + "&nbsp;руб </strong>");
+     
+    $("#fixedPrice").val(toFixed(Math.round(price/10)*10,0));
+  }
+
+  function isSpecialCase() { 
+    return isAeroport($from) || isAeroport($to); 
+  }
+
+  function isAeroport(){
+    var address = arguments[0];
+    if(arguments.length == 1) { 
+      return isAeroport(address, domodedovo) || isAeroport(address, sheremetevo) || isAeroport(address, vnukovo);
+    }
+    else { 
+      var template = arguments[1];
+      return address.indexOf(template) != -1; 
+    }
+  }
+  this.ss = function(){
+    console.log(flag_use);
+  }
+
+}
+
+YMaps.jQuery(function($){ 
+    var mapWorker = new MapWorker($); 
+    mapWorker.onReady();
+});
+
+</script>
+<div id="order-form-bg" style="z-index: 80; display: none;">
+<div id="order-form" class="fixpng">
+<div id="order-form-bg1">
+<div style="position:relative">
+    <div style="position:absolute; right:5px; top:5px; width:20px; height:20px; z-index:99;">
+        <a href="#" id="close"><img src="/assets/i/cancel_32.png" style="border: medium none;"></a>
+    </div>
+    <form action="/[~[*id*]~]" method="post" onkeypress="return checkEnter(event)" id="orderForm" name="orderForm" onsubmit="submitForm(); return false;">
+    
+    <input type="hidden" name="formid" value="orderForm" />
+    <div class="order-form-form">
+        
+        <table border="0" cellpadding="0" cellspacing="0">
+            <tbody>
+                <tr>
+                    <td colspan="2">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td class="order-form-caption">о вас:</td>
+                    <td class="order-form-content">
+                        <input name="about2" id="about2" class="input2 phone" onblur="if(this.value=='') this.value='телефон для связи'" onfocus="if(this.value=='телефон для связи') this.value='' " value="телефон для связи" maxlength="17">
+                        <input name="about1" id="about1" class="input2 fio" onblur="if(this.value=='') this.value='Ваши имя и фамилия'" onfocus="if(this.value=='Ваши имя и фамилия') this.value='' " value="Ваши имя и фамилия">
+                        <div><small>7 903 222 2222</small></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="sep" colspan="2"></td>
+                </tr>
+                <tr>
+                    <td class="order-form-caption" style="padding-top: 10px;">когда:</td>
+                    <td class="order-form-content" style="padding-top: 5px;">
+                        <div class="date">
+                            <input name="date1" id="date1" class="input2 phone" value="[[today]]" readonly="readonly">
+                        </div>
+                        <div class="time">
+                            <div class="list order-form-caption_list">время:</div>
+                            <div class="list">
+                                <input name="time1" id="time1" class="select time1" readonly="readonly" value="22 часа">
+                                <div class="list-items" id="ListTime1">
+                                    [[getListTime? &what=`h`]]
+                                </div>
+                            </div>
+                            <div class="list">
+                                <input name="time2" id="time2" class="select time2" readonly="readonly" value="45 мин">
+                                <div class="list-items" id="ListTime2">
+                                    <span>00</span>
+                                    <span>05</span>
+                                    <span>10</span>
+                                    <span>15</span>
+                                    <span>20</span>
+                                    <span>25</span>
+                                    <span>30</span>
+                                    <span>35</span>
+                                    <span>40</span>
+                                    <span>45</span>
+                                    <span>50</span>
+                                    <span>55</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="clear"><!-- --></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="sep" colspan="2"></td>
+                    </tr>
+                <tr>
+                    <td class="order-form-caption">откуда:</td>
+                    <td class="order-form-content" style="padding-top: 0px;">
+                        <input type="radio" name="radio-adres1" id="RadioAdres1Adres" value="Адрес" onclick="changeAddressType(1);" checked="checked" />
+                        <label for="RadioAdres1Adres" style="font-weight: bold;font-size: 15px;">Адрес</label>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="radio" name="radio-adres1" id="RadioAdres1Vokzal" value="Вокзал" onclick="changeAddressType(1);" />
+                        <label for="RadioAdres1Vokzal" style="font-weight: bold;font-size: 15px;">Вокзал</label>
+                        &nbsp;&nbsp;&nbsp;
+                        <input type="radio" name="radio-adres1" id="RadioAdres1Aero" value="Аэропорт" onclick="changeAddressType(1);" />
+                        <label for="RadioAdres1Aero" style="font-weight: bold;font-size: 15px;">Аэропорт</label>
+                        <div class="clear"><!-- --></div>   
+                        <div id="Adres1Adres">
+                            <div>
+                                <input name="adres1" id="adres1" class="input" onblur="if(this.value=='') this.value='Адрес подачи *'" onfocus="if(this.value=='Адрес подачи *') this.value='' " value="Адрес подачи *">
+                            </div>
+                            <div class="clear"><!-- --></div>
+                            <div class="separator"><!-- --></div>
+                            <div>
+                                <textarea name="comments1" id="comments1" class="textarea" style="resize: vertical;"></textarea>
+                            </div>
+                            <div>
+                                <small>Комментарии к адресу подачи</small>
+                            </div>
+                        </div>
+                        <div id="Adres1Vokzal" style="display: none;">
+                            <div class="list">
+                                <input name="vokzal1" id="vokzal1" class="select" readonly="readonly" value="">
+                                <div style="width: 398px; display: none;" class="list-items">
+                                    <span> </span>
+                                    <span>Белорусский вокзал</span>
+                                    <span>Казанский вокзал</span>
+                                    <span>Киевский вокзал</span>
+                                    <span>Курский вокзал</span>
+                                    <span>Ленинградский вокзал</span>
+                                    <span>Павелецкий вокзал</span>
+                                    <span>Рижский вокзал</span>
+                                    <span>Савеловский вокзал</span>
+                                    <span>Ярославский вокзал</span>
+                                </div>
+                            </div>
+                            <div class="clear"><!-- --></div>
+                            <div style="padding-top: 3px">
+                                <input name="poezd1" id="poezd1" class="input" onblur="if(this.value=='') this.value='Номер поезда'" onfocus="if(this.value=='Номер поезда') this.value='' " value="Номер поезда" style="width: 195px;">
+                                <input name="vagon1" id="vagon1" class="input" onblur="if(this.value=='') this.value='Номер вагона'" onfocus="if(this.value=='Номер вагона') this.value='' " value="Номер вагона" style="width: 194px;">
+                            </div>
+                        </div>
+                        <div id="Adres1Aero" style="display: none;">
+                            <div class="list">
+                                <input name="aero1" id="aero1" class="select" readonly="readonly" value=''>
+                                <div style="width: 398px; display: none;" class="list-items">
+                                    <span> </span>
+                                    <span>Шереметьево B</span>
+                                    <span>Шереметьево C</span>
+                                    <span>Шереметьево D</span>
+                                    <span>Шереметьево E</span>
+                                    <span>Шереметьево F</span>
+                                    <span>Домодедово</span>
+                                    <span>Внуково</span>
+                                </div>
+                            </div>
+                            <div class="clear"><!-- --></div>
+                            <div style="padding-top: 3px">
+                                <input name="reis1" id="reis1" class="input"  value="Номер рейса" onblur="if(this.value=='') this.value='Номер рейса'" onfocus="if(this.value=='Номер рейса') this.value='' ">
+                                <!--  -->
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="sep" colspan="2"></td>
+                </tr>
+                <tr>
+                    <td class="order-form-caption">куда:</td>
+                    <td class="order-form-content" style="padding-top: 0px;">
+                        <input type="radio" name="radio-adres2" id="RadioAdres2Adres" value="Адрес" onclick="changeAddressType(2);" checked="checked" />
+                        <label for="RadioAdres2Adres" style="font-weight: bold;font-size: 15px;">Адрес</label>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="radio" name="radio-adres2" id="RadioAdres2Vokzal" value="Вокзал" onclick="changeAddressType(2);" />
+                        <label for="RadioAdres2Vokzal" style="font-weight: bold;font-size: 15px;">Вокзал</label>
+                        &nbsp;&nbsp;&nbsp;
+                        <input type="radio" name="radio-adres2" id="RadioAdres2Aero" value="Аэропорт" onclick="changeAddressType(2);" />
+                        <label for="RadioAdres2Aero" style="font-weight: bold;font-size: 15px;">Аэропорт</label>
+                        <div class="clear"><!-- --></div>
+                        <div id="Adres2Adres">
+                            <div>
+                                <input name="adres2" id="adres2" class="input" onblur="if(this.value=='') this.value='Адрес *'" onfocus="if(this.value=='Адрес *') this.value='' " value="Адрес *">
+                            </div>
+                            <div class="clear"><!-- --></div>
+                            <div class="separator"><!-- --></div>
+                            <div>
+                                <textarea name="comments2" id="comments2" class="textarea" style="resize: vertical;"></textarea>
+                            </div>
+                            <div>
+                                <small>Комментарии к адресу назначения</small>
+                            </div>
+                        </div>
+                        <div id="Adres2Vokzal" style="display: none;">
+                            <div class="list">
+                                <input name="vokzal2" id="vokzal2" class="select" readonly="readonly" value="">
+                                <div style="width: 398px; display: none;" class="list-items">
+                                    <span> </span>
+                                    <span>Белорусский вокзал</span>
+                                    <span>Казанский вокзал</span>
+                                    <span>Киевский вокзал</span>
+                                    <span>Курский вокзал</span>
+                                    <span>Ленинградский вокзал</span>
+                                    <span>Павелецкий вокзал</span>
+                                    <span>Рижский вокзал</span>
+                                    <span>Савеловский вокзал</span>
+                                    <span>Ярославский вокзал</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="Adres2Aero" style="display: none;">
+                            <div class="list">
+                                <input name="aero2" id="aero2" class="select" readonly="readonly" value="">
+                                <div style="width: 398px; display: none;" class="list-items">
+                                    <span></span>
+                                    <span>Шереметьево B</span>
+                                    <span>Шереметьево C</span>
+                                    <span>Шереметьево D</span>
+                                    <span>Шереметьево E</span>
+                                    <span>Шереметьево F</span>
+                                    <span>Домодедово</span>
+                                    <span>Внуково</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="sep" colspan="2"></td>
+                </tr>
+            </tbody>
+        </table>
+
+<!--    начало верстки Путь     --> 
+        <table cellpadding="1" cellspacing="0" border="0" width="100%">
+            <tr>
+                <td class="order-form-caption" style="width: 55px; padding-right: 18px;padding-bottom: 20px;">Тариф: </td>
+                <td class="order-form-content" style="padding-top: 17px;">
+                    <div style="width: 270px;float: left;">
+                        <input type="radio" name="class" id="class0" value="0" checked="checked" />
+                        <label for="class0" style="font-weight: bold;font-size: 15px;">Эконом</label>
+                        &nbsp;
+                        <input type="radio" name="class" id="class1" value="1" />
+                        <label for="class1" style="font-weight: bold;font-size: 15px;">Комфорт</label>
+                        <input type="radio" name="class" id="class2" value="2" />
+                        <label for="class2" style="font-weight: bold;font-size: 15px;">Бизнес</label>
+                    </div>
+                    <div style="float: left; margin-top: -5px; margin-left: 15px;">
+                        <!-- <input type="checkbox" name="smoke" id="smoke1" value="1" style="display: none;"/> -->
+                        <!-- <label for="smoke1"></label> -->
+                        <img id="active_nosmoke" src="/assets/i/active_nosmoke.png" style="width: 60%; display: none;">
+                    </div>
+                    <div style="float: left; margin-top: -5px; margin-left: 15px;">
+                        <!-- <input type="checkbox" name="kc" id="kc1" value="1" style="display: none;"/> -->
+                        <!-- <label for="kc1"></label> -->
+                        <img id="aktiv_creslo_det" src="/assets/i/aktiv_creslo_det.png" style="width: 60%; display: none;">
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                    <td class="sep" colspan="2"></td>
+                    </tr>
+        </table>
+        <table border="0">
+            <tbody>
+                <tr style="text-align: center;">
+                    <td style="color: buttontext;font-weight: bold; font-size: 18px; font-family:'Times New Roman';">Вы можете заказать такси по фиксированной цене, для этого нажмите кнопку "Расcчитать стоимость"</td>
+                </tr>
+           </tbody>
+        </table>
+        <table border="0" style="width: 100%;">
+            <tbody>
+                <tr>
+                    <input id="fixedPrice" type="hidden" value="" name="fixedPrice"/>
+                    <input id="fromcoord" type="hidden" value="" name="fromcoord"/>
+                    <input id="tocoord" type="hidden" value="" name="tocoord"/>
+
+                    <td class="sbmt" style="text-align: center;">
+                        <input  type="button"  id="startcalc" value="Рассчитать стоимость" style="background: #AFDC0F; height: 50px; width: 300px; padding: 0; text-transform: uppercase; font-weight: bold; border: 0;font-size: 20px;"/>
+                        <input  type="button" id="startcalc_back" value="ОТМЕНИТЬ" style="display:none; background: #AFDC0F; height: 50px; width: 150px; padding: 0; text-transform: uppercase; font-weight: bold; border: 0;font-size: 20px; float: right;margin-left: 15px;"/>
+                    </td>
+
+                </tr>
+                <tr>
+                    <td style="color: buttontext;font-weight: bold; font-size: 18px; font-family:'Times New Roman';text-align:center;" id='or'>или</td>
+                </tr>
+            </tbody>
+        </table>
+        <div id="check" style="display:none;">
+            <table border="0">
+                <tbody>
+                    <tr>
+                        <td class="order-form-content" style="padding-top: 5px;"> 
+                            <div id="ymaps2" style="width: 475px; height: 350px;"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <table border="0" cellspacing="0" style="width: 100%; color: black; margin-top: 5px;">
+                <tbody>
+                    <tr>
+                        <td style="width: 150px">Общая длина маршрута:</td>
+                        <td id="dist">0</td>
+                        <td style="width: 150px">Из них по МКАД:</td>
+                        <td id="alg_mkad">0</td>        
+                    </tr>
+                    <tr>
+                        <td style="width: 150px">Время в пути:</td>
+                        <td id="timeD">0</td>
+                        <td style="width: 150px">Из них за МКАД:</td>
+                        <td id="out_mkad">0</td>
+                    </tr>
+               </tbody>
+            </table>
+            <table border="0" cellspacing="0" style="width: 100%; color: black; margin-top: 15px;">
+                <tbody>
+                    <tr style="text-transform: uppercase; width: 100%;  display: block; margin-left: 90px; font-size: 18px;">
+                        <td style="text-align: center;"><strong>Стоимость поездки:</strong></td>
+                        <td id="price"><strong>0</strong></td>
+                    </tr>
+                    <tr style="text-align: center;" id="we_can">
+                        <td style="color: buttontext;font-weight: bold; font-size: 18px; font-family:'Times New Roman';" >Вы можете заказать такси по фиксированной цене в течении часа. </td>
+                    </tr style="text-align: center;">
+                    <tr style="text-align: center;" id="we_cant">
+                        <td style="color: buttontext;font-weight: bold; font-size: 18px;font-family:'Times New Roman';" >Бесплатное время ожидания - 5 мин., далее ожидание считается по тарифу</td>
+                    </tr style="text-align: center;">
+                </tbody>
+            </table>
+        </div>
+        <table>
+            <tbody>
+                <tr style="text-align: center;">
+                    <td class="order-form-content" style="padding-top: 0px;">
+                        <div class="order-form-button" align="center" style="margin-left: 100px;">
+                            <input class="submit" value="" type="submit">
+                            <div id="tarrif" style="color: black; font-size: 18px;">По временному тарифу</div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+<!--    конец верстки Путь     -->
+
+    </div>
+    <div style="clear:both"><!-- --></div>
+</form></div>
+</div>
+<div id="order-form-bg2"></div>
+</div>
+
+<div id="order-form-options" onclick="showOptions(); return false;"></div>
+<div id="order-form-options-container">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+            <td>Наличие дисконтной карты у заказчика </td>
+            <td><p><input type="checkbox" name="dc" id="dc1" value="1" /></p></td>
+        </tr>
+        <tr>
+            <td>Оплата кредитной картой </td>
+            <td><p><input type="checkbox" name="pc" id="pc1" value="1" /></p></td>
+        </tr>
+        <tr>
+            <td>Требуется машина с кузовом «универсал»</td>
+            <td><p><input type="checkbox" name="tc" id="tc1" value="1" /></p></td>
+        </tr>
+        <tr>
+            <td>Требуется машина с детским креслом</td>
+            <td><p><input type="checkbox" name="kc" id="kc1" value="1" /></p></td>
+        </tr>
+        <tr>
+            <td>Требуется англоязычный водитель </td>
+            <td><p><input type="checkbox" name="es" id="es1" value="1" /></p></td>
+        </tr>
+        <tr>
+            <td>Заказчик повезёт животное </td>
+            <td><p><input type="checkbox" name="ha" id="ha1" value="1" /></p></td>
+        </tr>
+        <tr>
+            <td>Водитель&nbsp;должен&nbsp;созвониться&nbsp;с&nbsp;клиентом </td>
+            <td><p><input type="checkbox" name="cd" id="cd1" value="1" /></p></td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <table cellpadding="1" cellspacing="0" border="0" width="100%">
+                <tr>
+                    <td rowspan="3">Отношение заказчика к курению </td>
+                    <td style="width: 50%;">
+                        <input type="radio" name="smoke" id="smoke0" checked="checked" value="0" />&nbsp;Неважно
+                    </td>
+                </tr>
+                <tr><td>
+                    <input type="radio" name="smoke" id="smoke1" value="1" />&nbsp;Некурящий
+                </td></tr>
+                <tr><td>
+                    <input type="radio" name="smoke" id="smoke2" value="2" />&nbsp;Курящий
+                </td></tr>
+            </table>
+        </tr>
+    </table>
+</div>
+</div>
