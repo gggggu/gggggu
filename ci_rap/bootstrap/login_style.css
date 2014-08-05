@@ -1,0 +1,47 @@
+.page-header {
+    border-bottom: 1px solid #FFFFFF;
+    margin: 20px 0;
+    padding-bottom: 5px;
+    text-align: center;
+}
+
+.form-control {
+    border: 1px solid #D6D6D6;
+    border-radius: 0;
+    box-shadow: none;
+    height: 50px;
+    padding: 6px 15px;
+}
+
+body {
+    background-color: #ee7778;
+    /*background-color: #000;*/
+}
+
+.row {
+    background: #ededed;
+    padding: 20px 50px 20px 50px;
+    margin: 100px;  
+  border-radius:6px; 
+-webkit-border-radius:7px; 6
+-moz-border-radius:5px; 
+-khtml-border-radius:11px
+}
+
+.btn {
+    padding: 10px;
+    border-radius: 0;
+    border: none;
+    font-size: 21px;    
+}
+.login_button {
+    margin-left: 120%;
+}
+.exit{
+    float:right;
+    margin-right:10px;
+    margin-top:10px;
+}
+#text_area{
+ resize: none; 
+}

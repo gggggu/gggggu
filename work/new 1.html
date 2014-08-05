@@ -1,0 +1,71 @@
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="underscore/underscore.js"></script>
+<script src="backbone/backbone.js"></script>
+<script type='text/template' id='person_id'>
+	<strong><%= age  %></strong>
+</script>
+<link href='' rel='stylesheet'>
+<script>
+
+
+$.getJSON("http://localhost/rap/ci_rap/index.php", function(json){
+  alert('333');
+});
+
+var person = function(config){
+	this.name=config.name;
+	this.age=config.age;
+	this.job=config.job;
+}
+person.prototype.walk = function(){
+ return this.name +' '+ 'is walking';
+}
+var Nick = new person({name:'jack',age:22,job:'programer'});
+
+var person2 = Backbone.Model.extend({
+	defaults:{
+		name: "Dmitriy",
+		age: 22,
+		job: 'web developer'
+		},
+		validate : function(attrs){
+			console.log('xxx');
+			if(attrs.age ==0){
+				return 'Age is not negative!'
+			}
+			if(!attrs.name){
+				return 'person must have name!';
+			}
+		},
+		walk : function(){
+			return this.get('name') +' '+ 'yes, of course!';
+		}
+		
+});
+var d=new person2({age:33});
+var person3 = Backbone.View.extend(
+{
+	initialize : function(){
+		this.render();
+	}, 
+	render : function (){
+	//console.log(this.template)
+	var template = _.template($(this.template).html());
+		this.$el.html( template(this.model.toJSON()) );
+		
+	},
+	tagName : 'li',
+	className : 'hidden',
+	template : '#person_id'	
+
+	
+}); 
+ var personView = new person3({model : d});
+
+</script>
+
+
+<body>
+<p>Hi world</p>
+</body>
