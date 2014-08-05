@@ -38,7 +38,11 @@
 |
 */
 
+<<<<<<< HEAD
 $route['default_controller'] = "welcome";
+=======
+$route['default_controller'] = "ctrl";
+>>>>>>> 98c1cda9e62ba21b429d479e8bf930540b455752
 $route['404_override'] = '';
 
 
