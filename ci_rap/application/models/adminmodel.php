@@ -30,6 +30,10 @@ class AdminModel extends CI_Model {
                 $this->db->query("DELETE FROM articles WHERE id={$item}");
             }
     }
+    function add_article($data){
+        print_r($data);
+
+    }
    
     
 }

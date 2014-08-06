@@ -8,7 +8,7 @@
   </div>
 </div>
 <table class="table table-striped">
-<form method='post' id='checkboxes' action="http://rap.int/ci_rap/index.php/adminpagectrl/published_delete">		
+<form method='post' id='checkboxes' action="http://rap.int/ci_rap/index.php/adminpagectrl/add_article">		
 		<tr>
 			  <td>Заголовок</td><td><textarea rows="3" maxlength="200" class="field span12" id="text_area"></textarea></td>
 		</tr>
@@ -30,7 +30,7 @@
 			  <td>Автор</td><td><input class="input-large" type="text" ></td>
 		</tr>
 		<tr>
-			  <td><input type="submit" class="btn"></td><td></td>
+			  <td><input id="submit" type="submit" value="Добавить статью" class="btn"></td><td></td>
 		</tr>
 </form>
 </table>
